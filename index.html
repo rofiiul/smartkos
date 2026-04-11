@@ -137,7 +137,7 @@
 
   <!-- LAMPU -->
   <div class="card">
-    <p class="card-title">💡 Kontrol Lampu</p>
+    <p class="card-title">💡 Lampu</p>
     <div class="status-box">
       <div class="dot" id="dot-lampu"></div>
       <span id="status-lampu">Lampu Mati</span>
@@ -150,7 +150,7 @@
 
   <!-- KIPAS -->
   <div class="card">
-    <p class="card-title">🌀 Kontrol Kipas</p>
+    <p class="card-title">💨 Kipas</p>
     <div class="status-box">
       <div class="dot on" id="dot-kipas"></div>
       <span id="status-kipas">Kipas Nyala</span>
@@ -204,10 +204,20 @@
        'btn-set','btn-matikan','btn-nonaktif'].forEach(id => {
         document.getElementById(id).disabled = false;
       });
+      client.subscribe('smartkos/status');
     });
 
     client.on('error', () => {
       console.log('Gagal konek ke server');
+    });
+
+    client.on('message', (topic, message) => {
+      const pesan = message.toString();
+      if(topic === 'smartkos/status' && pesan === 'ALARM_BUNYI') {
+        localStorage.setItem('statusKipas', 'OFF');
+        document.getElementById('dot-kipas').className = 'dot off';
+        document.getElementById('status-kipas').innerText = 'Kipas Mati';
+      }
     });
 
     function updateJam() {
@@ -299,7 +309,7 @@
       localStorage.removeItem('alarmWaktu');
       localStorage.setItem('statusKipas', 'OFF');
       document.getElementById('alarm-dot').className = 'alarm-dot';
-      document.getElementById('alarm-status-text').innerText = 'Alarm tidak aktif';
+      document.getElementById('alarm-status-text').innerText = 'Buzzer dimatikan, alarm masih aktif';
       document.getElementById('dot-kipas').className = 'dot off';
       document.getElementById('status-kipas').innerText = 'Kipas Mati';
     }
@@ -307,7 +317,7 @@
     function nonaktifkanAlarm() {
       client.publish('smartkos/alarm', 'MATIKAN');
       document.getElementById('alarm-dot').className = 'alarm-dot bunyi';
-      document.getElementById('alarm-status-text').innerText = 'Buzzer dimatikan, alarm masih aktif';
+      document.getElementById('alarm-status-text').innerText = 'Alarm tidak aktif';
     }
   </script>
 </body>
