@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Kos Ropiul</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #1e293b;
+      border-radius: 20px;
+      padding: 40px 30px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+    .icon { font-size: 48px; margin-bottom: 10px; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 30px; }
+    .status-box {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #64748b;
+      transition: background 0.3s;
+    }
+    .dot.on { background: #22c55e; }
+    .dot.off { background: #ef4444; }
+    #status-text { font-size: 14px; color: #cbd5e1; }
+    #mqtt-status { font-size: 12px; color: #64748b; margin-bottom: 20px; }
+    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button {
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    button:active { transform: scale(0.96); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-on { background: #22c55e; color: white; }
+    .btn-off { background: #ef4444; color: white; }
+    .footer { margin-top: 30px; font-size: 12px; color: #475569; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">💡</div>
+    <h1>Smart Kos Ropiul</h1>
+    <p class="subtitle">Kontrol lampu kamar kos</p>
+
+    <div class="status-box">
+      <div class="dot" id="dot"></div>
+      <span id="status-text">Menunggu perintah...</span>
+    </div>
+
+    <p id="mqtt-status">Menghubungkan ke server...</p>
+
+    <div class="buttons">
+      <button class="btn-on" onclick="kirim('ON')" id="btn-on" disabled>ON</button>
+      <button class="btn-off" onclick="kirim('OFF')" id="btn-off" disabled>OFF</button>
+    </div>
+  </div>
+
+  <p class="footer">Smart Kos &copy; 2026</p>
+
+  <script>
+    const broker = 'wss://276d9e54084e4a99b7b863492b06212b.s1.eu.hivemq.cloud:8884/mqtt';
+    const options = {
+      username: 'Rafifirdaus',
+      password: '@Gresik123',
+      clientId: 'webClient_' + Math.random().toString(16).substr(2, 8)
+    };
+
+    const client = mqtt.connect(broker, options);
+
+    client.on('connect', () => {
+      document.getElementById('mqtt-status').innerText = 'Terhubung ke server';
+      document.getElementById('btn-on').disabled = false;
+      document.getElementById('btn-off').disabled = false;
+    });
+
+    client.on('error', (err) => {
+      document.getElementById('mqtt-status').innerText = 'Gagal konek: ' + err.message;
+    });
+
+    function kirim(state) {
+      client.publish('smartkos/lampu', state);
+      const dot = document.getElementById('dot');
+      const text = document.getElementById('status-text');
+      dot.className = 'dot ' + state.toLowerCase();
+      text.innerText = state === 'ON' ? 'Lampu Nyala' : 'Lampu Mati';
+    }
+  </script>
+</body>
+</html>
