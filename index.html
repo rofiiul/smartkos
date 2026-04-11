@@ -33,31 +33,33 @@
       text-transform: uppercase;
       letter-spacing: 1px;
     }
-
-    /* JAM */
-    .jam-box {
-      text-align: center;
-      padding: 10px 0;
-    }
+    .jam-box { text-align: center; padding: 10px 0; }
     .jam-angka {
       font-size: 56px;
       font-weight: 700;
       letter-spacing: 4px;
       color: white;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
     }
-    .jam-tanggal {
-      font-size: 13px;
-      color: #64748b;
-      margin-top: 4px;
+    .digit-wrapper {
+      display: inline-block;
+      overflow: hidden;
+      height: 1.2em;
+      vertical-align: bottom;
     }
-    #mqtt-status {
-      font-size: 11px;
-      text-align: center;
-      color: #475569;
-      margin-top: 8px;
+    .digit { display: block; }
+    .digit.slide-in {
+      animation: slideUp 0.3s ease forwards;
     }
-
-    /* LAMPU */
+    @keyframes slideUp {
+      from { transform: translateY(-100%); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
+    }
+    .sep { margin: 0 2px; line-height: 1.2em; }
+    .jam-tanggal { font-size: 13px; color: #64748b; margin-top: 4px; }
+    #mqtt-status { font-size: 11px; text-align: center; color: #475569; margin-top: 8px; }
     .status-box {
       background: #0f172a;
       border-radius: 12px;
@@ -67,15 +69,9 @@
       align-items: center;
       gap: 10px;
     }
-    .dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: #64748b;
-      flex-shrink: 0;
-    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #64748b; flex-shrink: 0; }
     .dot.on { background: #22c55e; }
     .dot.off { background: #ef4444; }
-    #status-text { font-size: 14px; color: #cbd5e1; }
     .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     button {
       padding: 14px;
@@ -93,14 +89,7 @@
     .btn-set { background: #3b82f6; color: white; grid-column: span 2; }
     .btn-nonaktif { background: #475569; color: white; grid-column: span 2; }
     .btn-matikan { background: #f59e0b; color: white; grid-column: span 2; }
-
-    /* ALARM */
-    .alarm-input {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-      align-items: center;
-    }
+    .alarm-input { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
     input[type="time"] {
       flex: 1;
       background: #0f172a;
@@ -122,15 +111,9 @@
       align-items: center;
       gap: 8px;
     }
-    .alarm-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #475569;
-      flex-shrink: 0;
-    }
+    .alarm-dot { width: 8px; height: 8px; border-radius: 50%; background: #475569; flex-shrink: 0; }
     .alarm-dot.aktif { background: #22c55e; }
     .alarm-dot.bunyi { background: #f59e0b; }
-
     .footer { font-size: 12px; color: #334155; }
   </style>
 </head>
@@ -139,7 +122,16 @@
   <!-- JAM -->
   <div class="card">
     <div class="jam-box">
-      <div class="jam-angka" id="jam">--:--:--</div>
+      <div class="jam-angka" id="jam">
+        <span class="digit-wrapper"><span class="digit" id="d0">-</span></span>
+        <span class="digit-wrapper"><span class="digit" id="d1">-</span></span>
+        <span class="sep">:</span>
+        <span class="digit-wrapper"><span class="digit" id="d2">-</span></span>
+        <span class="digit-wrapper"><span class="digit" id="d3">-</span></span>
+        <span class="sep">:</span>
+        <span class="digit-wrapper"><span class="digit" id="d4">-</span></span>
+        <span class="digit-wrapper"><span class="digit" id="d5">-</span></span>
+      </div>
       <div class="jam-tanggal" id="tanggal">--</div>
     </div>
     <p id="mqtt-status">Menghubungkan ke server...</p>
@@ -149,12 +141,25 @@
   <div class="card">
     <p class="card-title">💡 Kontrol Lampu</p>
     <div class="status-box">
-      <div class="dot" id="dot"></div>
-      <span id="status-text">Belum ada perintah</span>
+      <div class="dot" id="dot-lampu"></div>
+      <span id="status-lampu">Belum ada perintah</span>
     </div>
     <div class="buttons">
       <button class="btn-on" onclick="kirimLampu('ON')" id="btn-on" disabled>ON</button>
       <button class="btn-off" onclick="kirimLampu('OFF')" id="btn-off" disabled>OFF</button>
+    </div>
+  </div>
+
+  <!-- KIPAS -->
+  <div class="card">
+    <p class="card-title">🌀 Kontrol Kipas</p>
+    <div class="status-box">
+      <div class="dot" id="dot-kipas"></div>
+      <span id="status-kipas">Belum ada perintah</span>
+    </div>
+    <div class="buttons">
+      <button class="btn-on" onclick="kirimKipas('ON')" id="btn-kipas-on" disabled>ON</button>
+      <button class="btn-off" onclick="kirimKipas('OFF')" id="btn-kipas-off" disabled>OFF</button>
     </div>
   </div>
 
@@ -188,51 +193,71 @@
     const client = mqtt.connect(broker, options);
     let alarmAktif = false;
     let alarmWaktu = '';
+    let prevDigits = ['','','','','',''];
 
     client.on('connect', () => {
       document.getElementById('mqtt-status').innerText = 'Terhubung ke server ✓';
-      document.getElementById('btn-on').disabled = false;
-      document.getElementById('btn-off').disabled = false;
-      document.getElementById('btn-set').disabled = false;
-      document.getElementById('btn-matikan').disabled = false;
-      document.getElementById('btn-nonaktif').disabled = false;
+      ['btn-on','btn-off','btn-kipas-on','btn-kipas-off',
+       'btn-set','btn-matikan','btn-nonaktif'].forEach(id => {
+        document.getElementById(id).disabled = false;
+      });
     });
 
     client.on('error', () => {
       document.getElementById('mqtt-status').innerText = 'Gagal konek ke server';
     });
 
-    // Update jam dari device (WIB UTC+7)
     function updateJam() {
-    const now = new Date();
+      const now = new Date();
+      const jamFormatter = new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      });
+      const tanggalFormatter = new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        weekday: 'long', day: 'numeric', month: 'short', year: 'numeric'
+      });
 
-    const jamFormatter = new Intl.DateTimeFormat('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
+      const jamStr = jamFormatter.format(now).replace(/\./g, ':').replace(/:/g, '');
+      const digits = jamStr.split('');
 
-    const tanggalFormatter = new Intl.DateTimeFormat('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      weekday: 'long',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
+      digits.forEach((digit, i) => {
+        if(digit !== prevDigits[i]) {
+          const el = document.getElementById('d' + i);
+          el.classList.remove('slide-in');
+          void el.offsetWidth;
+          el.textContent = digit;
+          el.classList.add('slide-in');
+          prevDigits[i] = digit;
+        }
+      });
 
-    document.getElementById('jam').innerText = jamFormatter.format(now).replace(/\./g, ':');
-    document.getElementById('tanggal').innerText = tanggalFormatter.format(now);
-  }
+      document.getElementById('tanggal').innerText = tanggalFormatter.format(now);
+    }
 
     setInterval(updateJam, 1000);
     updateJam();
 
+    // Load alarm terakhir dari localStorage
+    const savedAlarm = localStorage.getItem('alarmWaktu');
+    if(savedAlarm) {
+      document.getElementById('waktu-alarm').value = savedAlarm;
+      document.getElementById('alarm-dot').className = 'alarm-dot aktif';
+      document.getElementById('alarm-status-text').innerText = 'Alarm aktif: ' + savedAlarm + ' WIB';
+      alarmAktif = true;
+      alarmWaktu = savedAlarm;
+    }
+
     function kirimLampu(state) {
       client.publish('smartkos/lampu', state);
-      document.getElementById('dot').className = 'dot ' + state.toLowerCase();
-      document.getElementById('status-text').innerText = state === 'ON' ? 'Lampu Nyala' : 'Lampu Mati';
+      document.getElementById('dot-lampu').className = 'dot ' + state.toLowerCase();
+      document.getElementById('status-lampu').innerText = state === 'ON' ? 'Lampu Nyala' : 'Lampu Mati';
+    }
+
+    function kirimKipas(state) {
+      client.publish('smartkos/kipas', state);
+      document.getElementById('dot-kipas').className = 'dot ' + state.toLowerCase();
+      document.getElementById('status-kipas').innerText = state === 'ON' ? 'Kipas Nyala' : 'Kipas Mati';
     }
 
     function setAlarm() {
@@ -241,22 +266,27 @@
       client.publish('smartkos/alarm', waktu);
       alarmAktif = true;
       alarmWaktu = waktu;
+      localStorage.setItem('alarmWaktu', waktu);
       document.getElementById('alarm-dot').className = 'alarm-dot aktif';
       document.getElementById('alarm-status-text').innerText = 'Alarm aktif: ' + waktu + ' WIB';
     }
 
     function matikanAlarm() {
-      client.publish('smartkos/alarm', 'MATIKAN');
+      client.publish('smartkos/alarm', 'OFF');
+      client.publish('smartkos/kipas', 'OFF');
+      alarmAktif = false;
+      alarmWaktu = '';
+      localStorage.removeItem('alarmWaktu');
       document.getElementById('alarm-dot').className = 'alarm-dot';
-      document.getElementById('alarm-status-text').innerText = 'Alarm dimatikan';
+      document.getElementById('alarm-status-text').innerText = 'Alarm tidak aktif';
+      document.getElementById('dot-kipas').className = 'dot off';
+      document.getElementById('status-kipas').innerText = 'Kipas Mati';
     }
 
     function nonaktifkanAlarm() {
-      client.publish('smartkos/alarm', 'OFF');
-      alarmAktif = false;
-      alarmWaktu = '';
-      document.getElementById('alarm-dot').className = 'alarm-dot';
-      document.getElementById('alarm-status-text').innerText = 'Alarm tidak aktif';
+      client.publish('smartkos/alarm', 'MATIKAN');
+      document.getElementById('alarm-dot').className = 'alarm-dot bunyi';
+      document.getElementById('alarm-status-text').innerText = 'Buzzer dimatikan, alarm masih aktif';
     }
   </script>
 </body>
