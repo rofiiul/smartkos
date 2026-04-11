@@ -111,6 +111,7 @@
       gap: 8px;
     }
     .alarm-dot { width: 8px; height: 8px; border-radius: 50%; background: #475569; flex-shrink: 0; }
+    .alarm-dot.inactive { background: #475569; }
     .alarm-dot.aktif { background: #22c55e; }
     .alarm-dot.bunyi { background: #f59e0b; }
     .footer { font-size: 12px; color: #334155; }
@@ -214,9 +215,7 @@
     client.on('message', (topic, message) => {
       const pesan = message.toString();
       if(topic === 'smartkos/status' && pesan === 'ALARM_BUNYI') {
-        localStorage.setItem('statusKipas', 'OFF');
-        document.getElementById('dot-kipas').className = 'dot off';
-        document.getElementById('status-kipas').innerText = 'Kipas Mati';
+        setKipasStatus('OFF', true);
       }
     });
 
@@ -248,6 +247,15 @@
       document.getElementById('tanggal').innerText = tanggalFormatter.format(now);
     }
 
+    function setKipasStatus(state, save = false) {
+      const normalized = state === 'ON' ? 'ON' : 'OFF';
+      document.getElementById('dot-kipas').className = 'dot ' + normalized.toLowerCase();
+      document.getElementById('status-kipas').innerText = normalized === 'ON' ? 'Kipas Nyala' : 'Kipas Mati';
+      if (save) {
+        localStorage.setItem('statusKipas', normalized);
+      }
+    }
+
     setInterval(updateJam, 1000);
     updateJam();
 
@@ -263,8 +271,7 @@
       localStorage.setItem('statusKipas', 'ON');
     }
     const savedKipas = localStorage.getItem('statusKipas');
-    document.getElementById('dot-kipas').className = 'dot ' + savedKipas.toLowerCase();
-    document.getElementById('status-kipas').innerText = savedKipas === 'ON' ? 'Kipas Nyala' : 'Kipas Mati';
+    setKipasStatus(savedKipas, false);
 
     // Load alarm terakhir dari localStorage
     const savedAlarm = localStorage.getItem('alarmWaktu');
@@ -285,9 +292,7 @@
 
     function kirimKipas(state) {
       client.publish('smartkos/kipas', state);
-      localStorage.setItem('statusKipas', state);
-      document.getElementById('dot-kipas').className = 'dot ' + state.toLowerCase();
-      document.getElementById('status-kipas').innerText = state === 'ON' ? 'Kipas Nyala' : 'Kipas Mati';
+      setKipasStatus(state, true);
     }
 
     function setAlarm() {
@@ -307,16 +312,17 @@
       alarmAktif = false;
       alarmWaktu = '';
       localStorage.removeItem('alarmWaktu');
-      localStorage.setItem('statusKipas', 'OFF');
-      document.getElementById('alarm-dot').className = 'alarm-dot';
+      setKipasStatus('OFF', true);
+      document.getElementById('alarm-dot').className = 'alarm-dot bunyi';
       document.getElementById('alarm-status-text').innerText = 'Buzzer dimatikan, alarm masih aktif';
-      document.getElementById('dot-kipas').className = 'dot off';
-      document.getElementById('status-kipas').innerText = 'Kipas Mati';
     }
 
     function nonaktifkanAlarm() {
       client.publish('smartkos/alarm', 'MATIKAN');
-      document.getElementById('alarm-dot').className = 'alarm-dot bunyi';
+      alarmAktif = false;
+      alarmWaktu = '';
+      localStorage.removeItem('alarmWaktu');
+      document.getElementById('alarm-dot').className = 'alarm-dot inactive';
       document.getElementById('alarm-status-text').innerText = 'Alarm tidak aktif';
     }
   </script>
