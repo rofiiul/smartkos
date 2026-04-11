@@ -204,19 +204,27 @@
 
     // Update jam dari device (WIB UTC+7)
     function updateJam() {
-      const now = new Date();
-      const wib = new Date(now.getTime() + (7 * 60 * 60 * 1000 - now.getTimezoneOffset() * 60 * 1000));
-      
-      const h = String(wib.getHours()).padStart(2, '0');
-      const m = String(wib.getMinutes()).padStart(2, '0');
-      const s = String(wib.getSeconds()).padStart(2, '0');
-      document.getElementById('jam').innerText = h + ':' + m + ':' + s;
+    const now = new Date();
 
-      const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-      const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-      document.getElementById('tanggal').innerText =
-        hari[wib.getDay()] + ', ' + wib.getDate() + ' ' + bulan[wib.getMonth()] + ' ' + wib.getFullYear();
-    }
+    const jamFormatter = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+
+    const tanggalFormatter = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+
+    document.getElementById('jam').innerText = jamFormatter.format(now).replace(/\./g, ':');
+    document.getElementById('tanggal').innerText = tanggalFormatter.format(now);
+  }
 
     setInterval(updateJam, 1000);
     updateJam();
