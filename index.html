@@ -59,7 +59,6 @@
     }
     .sep { margin: 0 2px; line-height: 1.2em; }
     .jam-tanggal { font-size: 13px; color: #64748b; margin-top: 4px; }
-    #mqtt-status { font-size: 11px; text-align: center; color: #475569; margin-top: 8px; }
     .status-box {
       background: #0f172a;
       border-radius: 12px;
@@ -134,7 +133,6 @@
       </div>
       <div class="jam-tanggal" id="tanggal">--</div>
     </div>
-    <p id="mqtt-status">Menghubungkan ke server...</p>
   </div>
 
   <!-- LAMPU -->
@@ -142,7 +140,7 @@
     <p class="card-title">💡 Kontrol Lampu</p>
     <div class="status-box">
       <div class="dot" id="dot-lampu"></div>
-      <span id="status-lampu">Belum ada perintah</span>
+      <span id="status-lampu">Lampu Mati</span>
     </div>
     <div class="buttons">
       <button class="btn-on" onclick="kirimLampu('ON')" id="btn-on" disabled>ON</button>
@@ -154,8 +152,8 @@
   <div class="card">
     <p class="card-title">🌀 Kontrol Kipas</p>
     <div class="status-box">
-      <div class="dot" id="dot-kipas"></div>
-      <span id="status-kipas">Belum ada perintah</span>
+      <div class="dot on" id="dot-kipas"></div>
+      <span id="status-kipas">Kipas Nyala</span>
     </div>
     <div class="buttons">
       <button class="btn-on" onclick="kirimKipas('ON')" id="btn-kipas-on" disabled>ON</button>
@@ -183,6 +181,12 @@
   <p class="footer">Smart Kos &copy; 2026</p>
 
   <script>
+    // Reset localStorage kipas jika versi baru
+    if(localStorage.getItem('versi') !== '2') {
+      localStorage.removeItem('statusKipas');
+      localStorage.setItem('versi', '2');
+    }
+
     const broker = 'wss://276d9e54084e4a99b7b863492b06212b.s1.eu.hivemq.cloud:8884/mqtt';
     const options = {
       username: 'Rafifirdaus',
@@ -196,7 +200,6 @@
     let prevDigits = ['','','','','',''];
 
     client.on('connect', () => {
-      document.getElementById('mqtt-status').innerText = 'Terhubung ke server ✓';
       ['btn-on','btn-off','btn-kipas-on','btn-kipas-off',
        'btn-set','btn-matikan','btn-nonaktif'].forEach(id => {
         document.getElementById(id).disabled = false;
@@ -204,7 +207,7 @@
     });
 
     client.on('error', () => {
-      document.getElementById('mqtt-status').innerText = 'Gagal konek ke server';
+      console.log('Gagal konek ke server');
     });
 
     function updateJam() {
@@ -238,6 +241,21 @@
     setInterval(updateJam, 1000);
     updateJam();
 
+    // Load status lampu dari localStorage
+    const savedLampu = localStorage.getItem('statusLampu');
+    if(savedLampu) {
+      document.getElementById('dot-lampu').className = 'dot ' + savedLampu.toLowerCase();
+      document.getElementById('status-lampu').innerText = savedLampu === 'ON' ? 'Lampu Nyala' : 'Lampu Mati';
+    }
+
+    // Load status kipas dari localStorage
+    if(localStorage.getItem('statusKipas') === null) {
+      localStorage.setItem('statusKipas', 'ON');
+    }
+    const savedKipas = localStorage.getItem('statusKipas');
+    document.getElementById('dot-kipas').className = 'dot ' + savedKipas.toLowerCase();
+    document.getElementById('status-kipas').innerText = savedKipas === 'ON' ? 'Kipas Nyala' : 'Kipas Mati';
+
     // Load alarm terakhir dari localStorage
     const savedAlarm = localStorage.getItem('alarmWaktu');
     if(savedAlarm) {
@@ -250,12 +268,14 @@
 
     function kirimLampu(state) {
       client.publish('smartkos/lampu', state);
+      localStorage.setItem('statusLampu', state);
       document.getElementById('dot-lampu').className = 'dot ' + state.toLowerCase();
       document.getElementById('status-lampu').innerText = state === 'ON' ? 'Lampu Nyala' : 'Lampu Mati';
     }
 
     function kirimKipas(state) {
       client.publish('smartkos/kipas', state);
+      localStorage.setItem('statusKipas', state);
       document.getElementById('dot-kipas').className = 'dot ' + state.toLowerCase();
       document.getElementById('status-kipas').innerText = state === 'ON' ? 'Kipas Nyala' : 'Kipas Mati';
     }
@@ -277,6 +297,7 @@
       alarmAktif = false;
       alarmWaktu = '';
       localStorage.removeItem('alarmWaktu');
+      localStorage.setItem('statusKipas', 'OFF');
       document.getElementById('alarm-dot').className = 'alarm-dot';
       document.getElementById('alarm-status-text').innerText = 'Alarm tidak aktif';
       document.getElementById('dot-kipas').className = 'dot off';
