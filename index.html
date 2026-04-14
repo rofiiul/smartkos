@@ -358,118 +358,6 @@
       box-shadow: 0 0 4px rgba(239,68,68,0.25);
     }
 
-    /* ── Connection Status Card ────────────────────── */
-    .connection-status-box {
-      background: var(--surface-3);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      transition: all 0.3s ease;
-    }
-
-    .connection-status-box.connected {
-      border-color: rgba(34,197,94,0.3);
-      background: rgba(34,197,94,0.05);
-    }
-
-    .connection-status-box.disconnected {
-      border-color: rgba(239,68,68,0.3);
-      background: rgba(239,68,68,0.05);
-    }
-
-    .connection-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex: 1;
-    }
-
-    .connection-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--red);
-      box-shadow: 0 0 4px rgba(239,68,68,0.25);
-      transition: all 0.3s ease;
-      flex-shrink: 0;
-      animation: pulse-dot-disconnected 1.5s infinite;
-    }
-
-    .connection-dot.connected {
-      background: var(--green);
-      box-shadow: 0 0 8px rgba(34,197,94,0.5);
-      animation: pulse-dot 2s infinite;
-    }
-
-    @keyframes pulse-dot-disconnected {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(1.1); }
-    }
-
-    .connection-text {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .connection-label {
-      font-size: 11px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 600;
-    }
-
-    .connection-status-text {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      transition: color 0.3s ease;
-    }
-
-    .connection-status-box.connected .connection-status-text {
-      color: var(--green);
-    }
-
-    .connection-status-box.disconnected .connection-status-text {
-      color: var(--red);
-    }
-
-    .connection-buttons {
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn-reconnect {
-      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
-      color: white;
-      padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 700;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: transform 0.1s ease, opacity 0.2s ease;
-      letter-spacing: 0.04em;
-    }
-
-    .btn-reconnect:hover {
-      opacity: 0.9;
-    }
-
-    .btn-reconnect:active {
-      transform: scale(0.96);
-    }
-
-    .btn-reconnect:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-    }
-
     .buttons {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -714,23 +602,6 @@
     </div>
   </div>
 
-  <!-- Server Connection Status Card -->
-  <div class="card">
-    <p class="card-title"><span class="title-icon">🔗</span> Status Server</p>
-    <div class="connection-status-box disconnected" id="connection-status-box">
-      <div class="connection-info">
-        <div class="connection-dot" id="connection-dot"></div>
-        <div class="connection-text">
-          <div class="connection-label">ESP32 MQTT Server</div>
-          <div class="connection-status-text" id="connection-status-text">Terputus</div>
-        </div>
-      </div>
-      <div class="connection-buttons">
-        <button class="btn-reconnect" onclick="reconnectMQTT()" id="btn-reconnect" disabled>Coba Lagi</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     // ── Helpers ─────────────────────────────────────
     function setLampuUI(state) {
@@ -747,27 +618,6 @@
       const s = state === 'ON' ? 'ON' : 'OFF';
       setKipasUI(s);
       if (save) localStorage.setItem('statusKipas', s);
-    }
-
-    function updateConnectionStatus(isConnected) {
-      const statusBox = document.getElementById('connection-status-box');
-      const statusDot = document.getElementById('connection-dot');
-      const statusText = document.getElementById('connection-status-text');
-      const reconnectBtn = document.getElementById('btn-reconnect');
-
-      if (isConnected) {
-        statusBox.classList.remove('disconnected');
-        statusBox.classList.add('connected');
-        statusDot.classList.add('connected');
-        statusText.innerText = 'Terhubung';
-        reconnectBtn.disabled = true;
-      } else {
-        statusBox.classList.remove('connected');
-        statusBox.classList.add('disconnected');
-        statusDot.classList.remove('connected');
-        statusText.innerText = 'Terputus';
-        reconnectBtn.disabled = false;
-      }
     }
 
     function kirimLampu(state) {
@@ -795,15 +645,6 @@
       localStorage.removeItem('alarmWaktu');
       document.getElementById('alarm-dot').className = 'alarm-ring-dot';
       document.getElementById('alarm-status-text').innerText = 'Alarm tidak aktif';
-    }
-
-    function reconnectMQTT() {
-      if (client) {
-        client.end();
-        setTimeout(() => {
-          client.connect();
-        }, 1000);
-      }
     }
 
     // ── Init from LocalStorage ───────────────────────
@@ -840,18 +681,6 @@
       ['btn-on','btn-off','btn-kipas-on','btn-kipas-off','btn-set','btn-nonaktif']
         .forEach(id => document.getElementById(id).disabled = false);
       client.subscribe('smartkos/status');
-      updateConnectionStatus(true);
-    });
-
-    client.on('disconnect', () => {
-      updateConnectionStatus(false);
-      ['btn-on','btn-off','btn-kipas-on','btn-kipas-off','btn-set','btn-nonaktif']
-        .forEach(id => document.getElementById(id).disabled = true);
-    });
-
-    client.on('error', (error) => {
-      console.error('MQTT Error:', error);
-      updateConnectionStatus(false);
     });
 
     client.on('message', (topic, message) => {
@@ -859,9 +688,6 @@
         setKipasStatus('OFF', true);
       }
     });
-
-    // Initialize connection status as disconnected
-    updateConnectionStatus(false);
 
     // ── Clock ─────────────────────────────────────────
     let prevDigits = ['','','','','',''];
