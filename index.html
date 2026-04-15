@@ -851,7 +851,7 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
       // Format: "Kam, 16 Apr 2026"
       const tgl = new Intl.DateTimeFormat('id-ID', {
         timeZone: 'Asia/Jakarta',
-        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
       }).format(now);
       document.getElementById('tanggal').innerText = tgl;
     }
